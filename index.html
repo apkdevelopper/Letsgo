@@ -1,0 +1,600 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>IP Detective</title>
+    <meta name="description" content="Detect your IP address and approximate location.">
+    <!-- Add favicon and apple-touch-icon links here later -->
+    <style>
+        :root {
+            --bg-color-dark: #0F0F23; /* Darker navy/almost black */
+            --bg-color-medium: #1a1a2e; /* Existing dark blue */
+            --bg-gradient: linear-gradient(135deg, var(--bg-color-dark) 0%, var(--bg-color-medium) 100%);
+            --text-color-light: #e0e0e0;
+            --text-color-muted: #bbb;
+            --accent-cyan: #00ffff;
+            --accent-purple: #9f78ff;
+            --accent-blue: #007bff; /* Electric blue */
+            --card-bg-color: rgba(20, 20, 50, 0.6); /* Slightly more opaque, bluish tint */
+            --card-border-color: rgba(0, 255, 255, 0.2); /* Cyan border */
+            --card-shadow: 0 0 15px rgba(0, 255, 255, 0.1), 0 0 30px rgba(159, 120, 255, 0.1);
+            --font-primary: 'Consolas', 'Monaco', 'Courier New', monospace; /* Tech-inspired fonts */
+            --font-secondary: 'Arial', sans-serif; /* Fallback for less critical text if needed */
+        }
+
+        body {
+            font-family: var(--font-primary);
+            margin: 0;
+            background: var(--bg-gradient);
+            background-attachment: fixed;
+            color: var(--text-color-light);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-height: 100vh;
+            padding: 20px;
+            box-sizing: border-box;
+        }
+        header { text-align: center; margin-bottom: 30px; }
+        header h1 {
+            font-size: 2.5em;
+            color: var(--accent-cyan);
+            text-shadow: 0 0 5px var(--accent-cyan), 0 0 10px var(--accent-cyan);
+        }
+        main { width: 100%; max-width: 1200px; }
+        .card-container { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px; }
+        .card {
+            background-color: var(--card-bg-color);
+            border: 1px solid var(--card-border-color);
+            box-shadow: var(--card-shadow);
+            border-radius: 10px;
+            padding: 20px;
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            transition: border-color 0.3s ease, box-shadow 0.3s ease, transform 0.3s ease;
+        }
+        .card:hover {
+            border-color: var(--accent-cyan); /* Brighter border on hover */
+            box-shadow: var(--card-shadow), 0 0 25px var(--accent-cyan); /* Enhance existing shadow and add cyan glow */
+            transform: translateY(-3px); /* Slight lift effect */
+        }
+        .card h2 {
+            margin-top: 0;
+            color: var(--accent-purple);
+            text-shadow: 0 0 5px var(--accent-purple);
+        }
+        .card p { margin-bottom: 10px; }
+        .card span { font-weight: bold; color: var(--accent-cyan); }
+        footer {
+            text-align: center;
+            margin-top: 40px;
+            padding: 15px;
+            font-size: 0.9em;
+            color: var(--text-color-muted);
+        }
+
+        /* Loader styles using accent color */
+        .loader {
+            border: 5px solid rgba(243,243,243,0.3); /* Lighter border for contrast against dark bg */
+            border-top: 5px solid var(--accent-cyan);
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 20px auto;
+        }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+
+        button {
+            background-color: var(--accent-blue);
+            color: var(--text-color-light);
+            border: 1px solid var(--accent-cyan);
+            padding: 8px 15px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-family: var(--font-primary);
+            transition: background-color 0.3s ease, box-shadow 0.3s ease;
+            text-transform: uppercase;
+        }
+        button:hover, button:focus {
+            background-color: var(--accent-cyan);
+            color: var(--bg-color-dark);
+            box-shadow: 0 0 10px var(--accent-cyan);
+        }
+
+        #copy-ip {
+            background: none;
+            border: none;
+            color: var(--accent-cyan);
+            padding: 0; /* Adjusted for better alignment if needed */
+            margin-left: 10px;
+            text-transform: uppercase;
+            cursor: pointer; /* Ensure cursor changes for text button */
+        }
+        #copy-ip:hover, #copy-ip:focus {
+            color: var(--accent-purple);
+            text-decoration: underline;
+            background-color: transparent; /* Ensure no bg change from general button */
+            box-shadow: none;
+        }
+        #copy-ip.copied {
+            color: var(--accent-purple); /* Or another distinct color */
+            /* font-weight: bold; /* Optional */
+        }
+
+        input[type="text"] {
+            background-color: rgba(255, 255, 255, 0.1);
+            border: 1px solid var(--accent-blue);
+            color: var(--text-color-light);
+            padding: 8px 10px;
+            border-radius: 5px;
+            font-family: var(--font-primary);
+        }
+        input[type="text"]::placeholder {
+            color: var(--text-color-muted);
+        }
+        input[type="text"]:focus {
+            outline: none;
+            border-color: var(--accent-cyan);
+            box-shadow: 0 0 5px var(--accent-cyan);
+        }
+
+        /* Responsive adjustments */
+        @media (max-width: 767px) {
+            body {
+                padding: 15px; /* Reduce body padding on smaller screens */
+            }
+
+            header h1 {
+                font-size: 2em; /* Reduce header font size */
+            }
+
+            .card-container {
+                /* Ensure single column layout for cards */
+                grid-template-columns: 1fr;
+                gap: 15px; /* Reduce gap between cards */
+            }
+
+            .card {
+                padding: 15px; /* Reduce card padding */
+            }
+
+            button, input[type="text"] {
+                font-size: 0.9em; /* Slightly smaller fonts for controls */
+            }
+        }
+
+        @media (max-width: 480px) {
+            header h1 {
+                font-size: 1.8em; /* Further reduce for very small screens */
+            }
+            /* Further adjustments if needed for very small devices */
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <h1>IP Detective</h1>
+    </header>
+
+    <main>
+        <section id="info-cards" class="card-container">
+            <article id="ip-card" class="card">
+                <h2>Your IP Address</h2>
+                <p>IP: <span id="ip-address">Detecting...</span> <button id="copy-ip" title="Copy IP" style="margin-left: 10px; background: none; border: none; color: #00ffff; cursor: pointer;">COPY</button></p>
+                <p>Type: <span id="ip-type">N/A</span></p>
+                <div id="ip-loader" class="loader"></div>
+            </article>
+
+            <article id="location-card" class="card">
+                <h2>Your Location</h2>
+                <p>Status: <span id="location-status">Idle</span></p>
+                <p>Latitude: <span id="latitude">N/A</span></p>
+                <p>Longitude: <span id="longitude">N/A</span></p>
+                <p>City/Region: <span id="city-region">N/A</span></p>
+                <p>Timezone: <span id="timezone">N/A</span></p>
+                <p><button id="get-location-btn">Detect Location</button></p>
+                <div id="location-loader" class="loader" style="display: none;"></div>
+            </article>
+
+            <article id="technical-details-card" class="card">
+                <h2>Technical Details</h2>
+                <p>Browser: <span id="browser-info">N/A</span></p>
+                <p>Operating System: <span id="os-info">N/A</span></p>
+                <p>ISP: <span id="isp-info">N/A</span></p>
+                <p>Local Time: <span id="local-time">N/A</span></p>
+                <p>Timezone Offset: <span id="timezone-offset">N/A</span></p>
+                <p>Connection Speed: <span id="connection-speed">N/A</span></p>
+            </article>
+
+            <article id="security-info-card" class="card">
+                <h2>Security & Privacy</h2>
+                <p><span id="privacy-tips">Loading tips...</span></p>
+                <!-- More content later -->
+            </article>
+        </section>
+
+        <section id="manual-lookup-card" class="card" style="margin-top: 20px;">
+            <h2>Manual IP Lookup</h2>
+            <input type="text" id="manual-ip-input" placeholder="Enter IP address">
+            <button id="manual-lookup-btn">Lookup</button>
+            <p id="manual-lookup-result"></p>
+        </section>
+    </main>
+
+    <footer>
+        <p>&copy; 2023 IP Detective. All rights reserved. For educational purposes only.</p>
+    </footer>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            console.log("DOM fully loaded and parsed");
+
+            const ipAddressEl = document.getElementById('ip-address');
+            const ipTypeEl = document.getElementById('ip-type');
+            const ipLoaderEl = document.getElementById('ip-loader');
+            const copyIpButton = document.getElementById('copy-ip');
+
+            // Location Elements
+            const locationStatusEl = document.getElementById('location-status');
+            const latitudeEl = document.getElementById('latitude');
+            const longitudeEl = document.getElementById('longitude');
+            const cityRegionEl = document.getElementById('city-region');
+            const timezoneEl = document.getElementById('timezone');
+            const locationLoaderEl = document.getElementById('location-loader');
+            const getLocationButton = document.getElementById('get-location-btn');
+
+            // Technical Details Elements
+            const browserInfoEl = document.getElementById('browser-info');
+            const osInfoEl = document.getElementById('os-info');
+            const ispInfoEl = document.getElementById('isp-info');
+            const localTimeEl = document.getElementById('local-time');
+            const timezoneOffsetEl = document.getElementById('timezone-offset');
+            const connectionSpeedEl = document.getElementById('connection-speed');
+
+
+            async function detectIPAddress() {
+                if (!ipAddressEl || !ipTypeEl || !ipLoaderEl) {
+                    console.error('Required IP elements not found');
+                    return;
+                }
+
+                ipLoaderEl.style.display = 'block';
+                ipAddressEl.textContent = 'Detecting...';
+                ipTypeEl.textContent = 'N/A';
+                let detectionTimeout;
+
+                try {
+                    const pc = new RTCPeerConnection({ iceServers: [{ urls: 'stun:stun.l.google.com:19302' }] });
+                    const uniqueIPs = new Set();
+                    let ipFound = false;
+
+                    pc.onicecandidate = (event) => {
+                        if (event.candidate && event.candidate.candidate) {
+                            const candidateStr = event.candidate.candidate;
+                            // Regex for IPv4 and IPv6 addresses. Prioritizes non-private IPs.
+                            // IPv4: Looks for standard a.b.c.d format.
+                            // IPv6: A comprehensive regex for various IPv6 formats.
+                            const ipRegex = /(candidate:\S+\s\d+\sudp\s\d+\s)(\b\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}\b|\b([0-9a-fA-F]{1,4}:){7,7}[0-9a-fA-F]{1,4}\b|\b([0-9a-fA-F]{1,4}:){1,7}:([0-9a-fA-F]{1,4})?\b|\b([0-9a-fA-F]{1,4}:){1,6}:[0-9a-fA-F]{1,4}\b)/g;
+                            let match;
+
+                            // Extract IP from candidate string (often type 'host')
+                            if (candidateStr.includes("typ host")) {
+                                const parts = candidateStr.split(" ");
+                                if (parts.length >= 5) {
+                                   const ip = parts[4];
+                                   if (!isPrivateIP(ip) && !uniqueIPs.has(ip)) {
+                                        console.log('Found public IP candidate:', ip, 'from host candidate');
+                                        uniqueIPs.add(ip);
+                                        // Prioritize IPv4, then IPv6
+                                        if (!ipFound || (ip.includes('.') && !ipAddressEl.textContent.includes('.'))) {
+                                            ipAddressEl.textContent = ip;
+                                            ipTypeEl.textContent = ip.includes('.') ? 'IPv4 (Local)' : 'IPv6 (Local)';
+                                            // If it's a public IP, we might consider it found.
+                                            // WebRTC often exposes local IPs first, then public ones via STUN.
+                                            // We'll wait for STUN results or timeout.
+                                        }
+                                    } else if (isPrivateIP(ip) && !uniqueIPs.has(ip)) {
+                                        uniqueIPs.add(ip); // Store private IPs as fallback
+                                        console.log('Found private IP candidate:', ip);
+                                    }
+                                }
+                            }
+
+                            // More general parsing for STUN-provided candidates (srflx)
+                            while ((match = ipRegex.exec(candidateStr)) !== null) {
+                                const ip = match[2]; // Group 2 is the IP address
+                                if (!isPrivateIP(ip)) {
+                                    if (!uniqueIPs.has(ip)) {
+                                        console.log('Found public IP candidate via regex:', ip);
+                                        uniqueIPs.add(ip);
+                                        // Prefer public IPv4 if available, or take the first public one
+                                        if (!ipFound || (ip.includes('.') && (!ipAddressEl.textContent.includes('.') || isPrivateIP(ipAddressEl.textContent)))) {
+                                            ipAddressEl.textContent = ip;
+                                            ipTypeEl.textContent = ip.includes('.') ? 'IPv4' : 'IPv6';
+                                            ipFound = true;
+                                            clearTimeout(detectionTimeout); // Clear timeout as we found a public IP
+                                            ipLoaderEl.style.display = 'none';
+                                            if (pc.signalingState !== 'closed') pc.close();
+                                            return; // Exit once a good public IP is found
+                                        } else if (!ipFound && !ip.includes('.')) { // First public IPv6 if no IPv4
+                                            ipAddressEl.textContent = ip;
+                                            ipTypeEl.textContent = 'IPv6';
+                                            ipFound = true;
+                                            clearTimeout(detectionTimeout);
+                                            ipLoaderEl.style.display = 'none';
+                                            if (pc.signalingState !== 'closed') pc.close();
+                                            return;
+                                        }
+                                    }
+                                } else if (!uniqueIPs.has(ip)) {
+                                     uniqueIPs.add(ip); // Store private IPs as fallback
+                                     console.log('Found private IP candidate via regex:', ip);
+                                }
+                            }
+                        }
+                    };
+
+                    pc.onicegatheringstatechange = () => {
+                        console.log('ICE gathering state:', pc.iceGatheringState);
+                        if (pc.iceGatheringState === 'complete') {
+                            clearTimeout(detectionTimeout); // Clear timeout as gathering is complete
+                            if (!ipFound) {
+                                // Fallback to any unique IP found if no public one was prioritized
+                                if (uniqueIPs.size > 0) {
+                                    let bestFallback = "";
+                                    // Try to find a non-link-local IPv4 first from collected IPs
+                                    for (const ip of uniqueIPs) {
+                                        if (ip.includes('.') && !ip.startsWith('169.254.')) {
+                                            bestFallback = ip;
+                                            break;
+                                        }
+                                    }
+                                    if (!bestFallback) { // Then any non-link-local IPv6
+                                       for (const ip of uniqueIPs) {
+                                            if (!ip.includes('.') && !ip.toLowerCase().startsWith('fe80::')) {
+                                                bestFallback = ip;
+                                                break;
+                                            }
+                                        }
+                                    }
+                                    if (!bestFallback) { // Otherwise, first IP whatever it is
+                                        bestFallback = uniqueIPs.values().next().value;
+                                    }
+
+                                    ipAddressEl.textContent = bestFallback;
+                                    ipTypeEl.textContent = bestFallback.includes('.') ? 'IPv4 (Likely Local)' : 'IPv6 (Likely Local)';
+                                    console.log('No public IP prioritized, using fallback:', bestFallback);
+                                } else {
+                                    ipAddressEl.textContent = 'WebRTC IP Detection Failed';
+                                    ipTypeEl.textContent = 'N/A';
+                                }
+                                ipFound = true; // Mark as "found" to prevent timeout from overwriting this
+                            }
+                            ipLoaderEl.style.display = 'none';
+                            if (pc.signalingState !== 'closed') pc.close();
+                        }
+                    };
+
+                    pc.createDataChannel("dummy");
+
+                    detectionTimeout = setTimeout(() => {
+                        if (!ipFound) {
+                            console.log('IP detection timed out.');
+                            if (uniqueIPs.size > 0) {
+                                let bestFallback = "";
+                                // Fallback logic similar to onicegatheringstatechange complete
+                                for (const ip of uniqueIPs) { // Prefer IPv4
+                                    if (ip.includes('.')) { bestFallback = ip; break; }
+                                }
+                                if (!bestFallback) { bestFallback = uniqueIPs.values().next().value; }
+
+                                ipAddressEl.textContent = bestFallback;
+                                ipTypeEl.textContent = bestFallback.includes('.') ? 'IPv4 (Timeout)' : 'IPv6 (Timeout)';
+                            } else {
+                                ipAddressEl.textContent = 'WebRTC IP Detection Failed';
+                                ipTypeEl.textContent = 'N/A';
+                            }
+                            ipFound = true;
+                            ipLoaderEl.style.display = 'none';
+                            if (pc.signalingState !== 'closed') pc.close();
+                        }
+                    }, 7000); // 7 seconds timeout
+
+                } catch (error) {
+                    console.error('Error detecting IP:', error);
+                    clearTimeout(detectionTimeout);
+                    ipAddressEl.textContent = 'WebRTC IP Error';
+                    ipTypeEl.textContent = 'N/A';
+                    ipLoaderEl.style.display = 'none';
+                }
+            }
+
+            function isPrivateIP(ip) {
+                if (!ip) return true; // Treat null/undefined as private to avoid processing
+                // IPv4 private ranges
+                if (/^(::f{4}:)?10(\.\d{1,3}){3}$/.test(ip)) return true;
+                if (/^(::f{4}:)?172\.(1[6-9]|2\d|3[01])(\.\d{1,3}){2}$/.test(ip)) return true;
+                if (/^(::f{4}:)?192\.168(\.\d{1,3}){2}$/.test(ip)) return true;
+                if (/^(::f{4}:)?127(\.\d{1,3}){3}$/.test(ip)) return true; // Loopback
+                if (/^(::f{4}:)?169\.254(\.\d{1,3}){2}$/.test(ip)) return true; // Link-local / APIPA
+
+                // IPv6 private/local ranges
+                if (/^fe[89ab][0-9a-fA-F]:/i.test(ip)) return true; // Link-local
+                if (/^fc00:/i.test(ip) || /^fd00:/i.test(ip)) return true; // Unique local addresses
+                if (/^::1$/.test(ip)) return true; // Loopback
+                if (/^::$/.test(ip)) return true; // Unspecified
+                if (/^::ffff:(0a|ac1|c0a8|7f|a9fe)/i.test(ip)) return true; // IPv4-mapped private IPs
+
+                // Check for common VM/Docker/internal network patterns if necessary
+                // Example: 100.64.0.0/10 for carrier-grade NAT
+                if (/^100\.(6[4-9]|[7-9]\d|1[01]\d|12[0-7])\./.test(ip)) return true;
+
+
+                return false;
+            }
+
+            detectIPAddress();
+
+            if(copyIpButton) {
+                copyIpButton.addEventListener('click', () => {
+                    const ipAddress = ipAddressEl.textContent;
+                    if (ipAddress && ipAddress !== 'Detecting...' && ipAddress !== 'N/A' && ipAddress !== 'WebRTC IP Error' && ipAddress !== 'Unavailable' && !ipAddress.includes('Failed')) {
+                        navigator.clipboard.writeText(ipAddress)
+                            .then(() => {
+                                copyIpButton.textContent = 'COPIED!';
+                                copyIpButton.classList.add('copied');
+                                setTimeout(() => {
+                                    copyIpButton.textContent = 'COPY';
+                                    copyIpButton.classList.remove('copied');
+                                }, 2000);
+                            })
+                            .catch(err => {
+                                console.error('Failed to copy IP: ', err);
+                                alert('Failed to copy IP. Please try manually.');
+                            });
+                    } else {
+                        alert('No valid IP address to copy yet.');
+                    }
+                });
+            }
+
+            if(getLocationButton) {
+                getLocationButton.addEventListener('click', () => {
+                    document.getElementById('location-status').textContent = 'Requesting permission...';
+                    console.log('Geolocation requested...');
+                    // Actual geolocation logic will be added in a subsequent step
+                    // console.log('Geolocation requested...'); // Now handled by detectLocation
+                    detectLocation();
+                });
+            }
+
+            async function detectLocation() {
+                if (!navigator.geolocation) {
+                    if(locationStatusEl) locationStatusEl.textContent = 'Geolocation API not supported.';
+                    return;
+                }
+
+                if (!locationStatusEl || !latitudeEl || !longitudeEl || !cityRegionEl || !timezoneEl || !locationLoaderEl) {
+                    console.error('Required location elements not found in the DOM.');
+                    return;
+                }
+
+                locationLoaderEl.style.display = 'block';
+                locationStatusEl.textContent = 'Requesting permission...';
+                latitudeEl.textContent = 'N/A';
+                longitudeEl.textContent = 'N/A';
+                cityRegionEl.textContent = 'N/A';
+                timezoneEl.textContent = 'N/A';
+
+                const options = {
+                    enableHighAccuracy: false, // Faster, less battery
+                    timeout: 10000, // 10 seconds
+                    maximumAge: 0 // Don't use a cached position
+                };
+
+                try {
+                    const position = await new Promise((resolve, reject) => {
+                        navigator.geolocation.getCurrentPosition(resolve, reject, options);
+                    });
+
+                    locationStatusEl.textContent = 'Location found';
+                    latitudeEl.textContent = position.coords.latitude.toFixed(5);
+                    longitudeEl.textContent = position.coords.longitude.toFixed(5);
+
+                    // Timezone detection
+                    try {
+                        const userTimezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+                        timezoneEl.textContent = userTimezone;
+                    } catch (e) {
+                        console.warn("Could not detect timezone:", e);
+                        timezoneEl.textContent = 'Error detecting timezone';
+                    }
+
+                    // Placeholder for offline reverse geocoding
+                    cityRegionEl.textContent = 'Unavailable (Offline Mode)';
+                    // We will not implement actual reverse geocoding in this step
+                    // to keep it client-side without external APIs or large datasets.
+
+                } catch (error) {
+                    console.error('Error getting location:', error);
+                    let message = 'Error getting location.';
+                    if (error && error.code) { // Check if error and error.code exist
+                        switch (error.code) {
+                            case error.PERMISSION_DENIED:
+                                message = 'Geolocation permission denied.';
+                                break;
+                            case error.POSITION_UNAVAILABLE:
+                                message = 'Location information unavailable.';
+                                break;
+                            case error.TIMEOUT:
+                                message = 'Geolocation request timed out.';
+                                break;
+                            default:
+                                message = `An unknown error occurred (Code: ${error.code}).`;
+                                break;
+                        }
+                    } else if (error && error.message) { // Fallback to error message if code is not present
+                        message = error.message;
+                    }
+                    locationStatusEl.textContent = message;
+                } finally {
+                    locationLoaderEl.style.display = 'none';
+                }
+            }
+
+            function displayTechnicalInfo() {
+                if (ispInfoEl) ispInfoEl.textContent = 'Unavailable (Client-side)';
+                if (connectionSpeedEl) connectionSpeedEl.textContent = 'N/A';
+
+                const userAgent = navigator.userAgent || "N/A";
+                if (browserInfoEl) browserInfoEl.textContent = getBrowserName(userAgent);
+                if (osInfoEl) osInfoEl.textContent = getOsName(userAgent);
+
+                function getBrowserName(ua) {
+                    if (ua.includes("Firefox/")) return "Firefox";
+                    if (ua.includes("SamsungBrowser/")) return "Samsung Browser";
+                    if (ua.includes("Opera/") || ua.includes("OPR/")) return "Opera";
+                    if (ua.includes("Edge/") || ua.includes("Edg/")) return "Edge"; // Check before Chrome
+                    if (ua.includes("Chrome/") && !ua.includes("Edg/")) return "Chrome";
+                    if (ua.includes("Safari/") && !ua.includes("Chrome/") && !ua.includes("Edg/")) return "Safari"; // Check after Chrome and Edge
+                    return "Unknown Browser";
+                }
+
+                function getOsName(ua) {
+                    if (ua.includes("Windows NT")) return "Windows";
+                    if (ua.includes("Mac OS X")) return "macOS";
+                    if (ua.includes("Android")) return "Android";
+                    if (ua.includes("iOS") || ua.includes("iPhone") || ua.includes("iPad")) return "iOS"; // Combined iOS check
+                    if (ua.includes("Linux") && !ua.includes("Android")) return "Linux"; // Ensure not Android's Linux
+                    return "Unknown OS";
+                }
+
+                function updateLocalTime() {
+                    const now = new Date();
+                    if (localTimeEl) { // Check if element exists
+                        localTimeEl.textContent = now.toLocaleTimeString();
+                    }
+                }
+                updateLocalTime(); // Initial call
+                setInterval(updateLocalTime, 1000); // Update every second
+
+                if (timezoneOffsetEl) {
+                    const offsetMinutes = new Date().getTimezoneOffset();
+                    const offsetHours = -offsetMinutes / 60;
+                    const sign = offsetHours >= 0 ? "+" : "-";
+                    // Ensure two digits for hours and minutes
+                    const absOffsetHours = Math.abs(offsetHours);
+                    const hoursString = String(Math.floor(absOffsetHours)).padStart(2, '0');
+                    const minutesString = String(Math.abs(offsetMinutes % 60)).padStart(2, '0');
+                    timezoneOffsetEl.textContent = "UTC" + sign + hoursString + ":" + minutesString;
+                }
+            }
+
+            displayTechnicalInfo(); // Call to populate technical info
+
+        });
+    </script>
+</body>
+</html>
